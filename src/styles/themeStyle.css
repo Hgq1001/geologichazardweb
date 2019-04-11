@@ -1,0 +1,16 @@
+.DarkThemeFontColor {
+  color: #00eeee;
+}
+
+.DarkThemeDefault {
+  color: #00eeee;
+  border: 1px solid rgba(11, 212, 255, 0.54);
+  background-color: rgba(7, 141, 255, 0.22);
+  cursor: pointer;
+}
+
+.DarkThemeActive {
+  color: #00eeee;
+  border: 1px solid rgba(0, 255, 255, 0.82);
+  background-color: rgba(0, 255, 255, 0.36);
+}

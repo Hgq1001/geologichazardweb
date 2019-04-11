@@ -1,0 +1,64 @@
+.toolContainer {
+  display: flex;
+  justify-content: center;
+  width: 220px;
+  background-image: url("../../assets/images/img/right_bg_01.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  z-index: 150;
+  padding: 10px 15px 15px 20px;
+}
+
+.toolBox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  /*align-items: center;*/
+  /*background: red;*/
+  /*padding: 15px 10px 15px 15px;*/
+}
+
+.titleBox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.blockBg {
+  width: 5px;
+  height: 10px;
+  background-color: #00eeee;
+}
+
+.tTitle {
+  display: flex;
+  align-items: center;
+  color: #33ecd7;
+  font-size: 12px;
+  margin-left: 10px;
+  text-align: center;
+}
+
+.toolList {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.toolItem {
+  display: flex;
+  flex: 1 1 22%;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin: 10px 0;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0);
+}
+
