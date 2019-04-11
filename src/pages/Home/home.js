@@ -197,7 +197,7 @@ class Home extends Component {
   //加载网格
   loadOrigin(step = 0.025) {
     if (!this.gridLayer) {
-      this.addGridLayer();
+      this.addGridLayer(0.025, 4);
     }
     else {
       this.map.removeLayer(this.gridLayer);
@@ -206,7 +206,7 @@ class Home extends Component {
   }
 
   //添加网格图层
-  addGridLayer(step = 0.025) {
+  addGridLayer(step = 0.025, multiple = 1) {
     this.gridLayer = new Layer.Vector({ source: null, style: null, name: 'gridLayer' });
     this.map.addLayer(this.gridLayer);
 
@@ -220,19 +220,19 @@ class Home extends Component {
     let lat;		//实际维度
 
     let ind = -1;
-    for (let i = 0; i < Math.ceil((endLat - startLat) / step); i++) {
-      lat = startLat + i * step;
+    for (let i = 0; i < Math.ceil((endLat - startLat) / (step * multiple)); i++) {
+      lat = startLat + i * step * multiple;
       this.currentGridData.push([]);
-      for (let j = 0; j <= Math.ceil((endLon - startLon) / step); j++) {
+      for (let j = 0; j <= Math.ceil((endLon - startLon) / (step * multiple)); j++) {
         ind++;
-        lon = startLon + j * step;
+        lon = startLon + j * step * multiple;
         this.currentGridData[i].push(0);
 
         let coordinates = [
           [lon, lat],
-          [lon + step, lat],
-          [lon + step, lat - step],
-          [lon, lat - step],
+          [lon + step * multiple, lat],
+          [lon + step * multiple, lat - step * multiple],
+          [lon, lat - step * multiple],
           [lon, lat],
         ];
         gridFeatures[ind] = this.setGridFeature(coordinates, i, j, this.currentGridData);
