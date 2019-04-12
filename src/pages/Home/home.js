@@ -90,6 +90,7 @@ class Home extends Component {
       valid: '',
       customValid: '',
       colorData: {},
+      // distance:
     };
 
     this.map = null;//地图
@@ -140,7 +141,7 @@ class Home extends Component {
         center: Proj.transform([107.78687, 30.13550], 'EPSG:4326', 'EPSG:3857'), // 地图初始中心点,
         zoom: 8,
         minZoom: 7,
-        maxZoom: 12,
+        maxZoom: 11,
         enableRotation: false,
       }),
       layers: [cqLayer, riverLayer],
@@ -150,18 +151,27 @@ class Home extends Component {
 
   checkZoom() {
     let zoom = Math.ceil(this.map.getView().getZoom());
-    // if (zoom === 8) {
-    //   this.setGridFeatureStyle( 8);
-    // }
-    // else if (zoom === 10) {
-    //   this.setGridFeatureStyle( 4);
-    // }
-    // else if (zoom === 12) {
-    //   this.setGridFeatureStyle( 2);
-    // }
-    // else if (zoom === 14) {
-    //   this.setGridFeatureStyle( 1);
-    // }
+    if (zoom === 7) {
+      console.log('zoom----->', zoom);
+      this.map.removeLayer(this.gridLayer);
+      this.addGridLayer(0.025, 10);
+    } else if (zoom === 8) {
+      console.log('zoom----->', zoom);
+      this.map.removeLayer(this.gridLayer);
+      this.addGridLayer(0.025, 4);
+    } else if (zoom === 9) {
+      console.log('zoom----->', zoom);
+      this.map.removeLayer(this.gridLayer);
+      this.addGridLayer(0.025, 2, true);
+    } else if (zoom === 10) {
+      console.log('zoom----->', zoom);
+      this.map.removeLayer(this.gridLayer);
+      this.addGridLayer(0.025, 1, true);
+    } else if (zoom === 11) {
+      console.log('zoom----->', zoom);
+      this.map.removeLayer(this.gridLayer);
+      this.addGridLayer(0.025, 1, true);
+    }
   }
 
   //选择时间
@@ -197,35 +207,75 @@ class Home extends Component {
   //加载网格
   loadOrigin(step = 0.025) {
     if (!this.gridLayer) {
-      this.addGridLayer(0.025, 4);
-    }
-    else {
+      this.addGridLayer(0.025, 5);
+    } else {
       this.map.removeLayer(this.gridLayer);
       this.gridLayer = null;
     }
   }
 
   //添加网格图层
-  addGridLayer(step = 0.025, multiple = 1) {
+  addGridLayer(step = 0.025, multiple = 1, isShowLine) {
     this.gridLayer = new Layer.Vector({ source: null, style: null, name: 'gridLayer' });
     this.map.addLayer(this.gridLayer);
 
     let gridDataObj = this.props.home.gridData;
+
+    this.gridFeatures = this.getGridFeatures(gridDataObj, step, multiple);
+
+
+    // let gridFeatures = [];//点的feature
+    // let startLon = gridDataObj.startLon;	//开始经度
+    // let startLat = gridDataObj.startLat;	//开始纬度
+    // let endLon = gridDataObj.endLon;	//结束纬度
+    // let endLat = gridDataObj.endLat;	//结束纬度
+    // let lon;		//实际经度
+    // let lat;		//实际维度
+    //
+    // let ind = -1;
+    // for (let i = 0; i < Math.ceil((endLat - startLat) / (step * multiple)); i++) {
+    //   lat = startLat + i * step * multiple;
+    //   this.currentGridData.push([]);
+    //   for (let j = 0; j <= Math.ceil((endLon - startLon) / (step * multiple)); j++) {
+    //     ind++;
+    //     lon = startLon + j * step * multiple;
+    //     this.currentGridData[i].push(0);
+    //
+    //     let coordinates = [
+    //       [lon, lat],
+    //       [lon + step * multiple, lat],
+    //       [lon + step * multiple, lat - step * multiple],
+    //       [lon, lat - step * multiple],
+    //       [lon, lat],
+    //     ];
+    //     gridFeatures[ind] = this.setGridFeatureConfig(coordinates, i, j, this.currentGridData);
+    //   }
+    // }
+    // this.gridFeatures= gridFeatures;
+    const source = new Source.Vector({ features: this.gridFeatures });
+
+    this.gridLayer.setSource(source);
+    this.setGridFeatureStyle(multiple, this.currentGridData, isShowLine);
+  }
+
+
+  //获取网格多边形feature数组
+  getGridFeatures(gridDataObj, step, multiple) {
     let gridFeatures = [];//点的feature
-    let startLon = gridDataObj.startLon;	//开始经度
-    let startLat = gridDataObj.startLat;	//开始纬度
-    let endLon = gridDataObj.endLon;	//结束纬度
-    let endLat = gridDataObj.endLat;	//结束纬度
+    // let startLon = gridDataObj.startLon;	//开始经度
+    // let startLat = gridDataObj.startLat;	//开始纬度
+    // let endLon = gridDataObj.endLon;	//结束纬度
+    // let endLat = gridDataObj.endLat;	//结束纬度
     let lon;		//实际经度
     let lat;		//实际维度
 
-    let ind = -1;
-    for (let i = 0; i < Math.ceil((endLat - startLat) / (step * multiple)); i++) {
-      lat = startLat + i * step * multiple;
+    let idx = -1;//每个格子的index
+    for (let i = 0; i < Math.ceil((gridDataObj.endLat - gridDataObj.startLat) / (step * multiple)); i++) {
+      lat = gridDataObj.startLat + i * step * multiple;
       this.currentGridData.push([]);
-      for (let j = 0; j <= Math.ceil((endLon - startLon) / (step * multiple)); j++) {
-        ind++;
-        lon = startLon + j * step * multiple;
+      for (let j = 0; j <= Math.ceil((gridDataObj.endLon - gridDataObj.startLon) / (step * multiple)); j++) {
+        idx++;
+        lon = gridDataObj.startLon + j * step * multiple;
         this.currentGridData[i].push(0);
 
         let coordinates = [
@@ -235,17 +285,14 @@ class Home extends Component {
           [lon, lat - step * multiple],
           [lon, lat],
         ];
-        gridFeatures[ind] = this.setGridFeature(coordinates, i, j, this.currentGridData);
+        gridFeatures[idx] = this.setGridFeatureConfig(coordinates, i, j, this.currentGridData, idx);
       }
     }
-    this.gridFeatures = gridFeatures;
-    const source = new Source.Vector({ features: gridFeatures });
-    this.gridLayer.setSource(source);
-    this.setGridFeatureStyle(1, this.currentGridData);
+    return gridFeatures;
   }
 
   //每个多边形的feature
-  setGridFeature(coordinates, row, column, data) {
+  setGridFeatureConfig(coordinates, row, column, data, index) {
     let coordinatePolygon = [];
     for (let i = 0; i < coordinates.length; i++) {
       let pointTransform = Proj.transform([coordinates[i][0], coordinates[i][1]], 'EPSG:4326', 'EPSG:3857');
@@ -258,11 +305,12 @@ class Home extends Component {
       value: data[row][column],
       row: row,
       column: column,
+      idx: index,
     });
   }
 
   //设置网格样式以及数目
-  setGridFeatureStyle(num = 2, data) {
+  setGridFeatureStyle(num = 2, data, isShowLine = false) {
     let Features = this.gridFeatures;
     // this.map.removeLayer(this.districtLayer);
     for (let i = 0; i < Features.length; i++) {
@@ -273,13 +321,17 @@ class Home extends Component {
         value: data[row][column] + '',
       });
       // if (row % num === 0 && column % num === 0) {
+      let flag = row % num === 0 && column % num === 0;
       Features[i].setStyle(function() {
         return new OlStyles.Style({
-          stroke: new OlStyles.Stroke({ color: 'rgb(166, 166, 166)', width: 1 }),
+          stroke: isShowLine ? new OlStyles.Stroke({
+            color: 'rgb(166, 166, 166)',
+            width: 1,
+          }) : null,
           fill: new OlStyles.Fill({ color: utils.getColor(data[row][column]) }),
-          text: new OlStyles.Text({
+          text: row % num === 0 && column % num === 0 ? new OlStyles.Text({
             text: '' + Features[i].get('value'),
-          }),
+          }) : null,
         });
       });
       // }
@@ -292,8 +344,7 @@ class Home extends Component {
     for (let i = 0; i < obj.length; i++) {
       if (obj[i] instanceof Array) {
         out[i] = this.deepCopy(obj[i]);
-      }
-      else out[i] = obj[i];
+      } else out[i] = obj[i];
     }
     return out;
   }
@@ -383,8 +434,7 @@ class Home extends Component {
           });
         }, 300);
       });
-    }
-    else {
+    } else {
       this.map.removeLayer(this.districtLayer);
       this.map.removeInteraction(this.draw);
       this.districtLayer = null;
