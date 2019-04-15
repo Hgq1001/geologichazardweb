@@ -61,6 +61,12 @@ const provinceStyle = (feature, resolution) => {
   });
 };
 
+const mapObj = {
+  initMap: (container,layers,) => {
+    return
+  },
+};
+
 
 const revokeObj = {
   revokeFlag: (data, flag, maxNum = 3) => {
@@ -86,26 +92,27 @@ class Home extends Component {
     // 初始状态
     this.state = {
       date: utils.getDate(),
-      times: '',
+      sequence: '',
       valid: '',
       customValid: '',
       colorData: {},
+
+
       // distance:
     };
 
     this.map = null;//地图
     this.gridLayer = null;//网格图层
-
+    this.innerGridLayer = null;//最底层网格图层
     this.gridFeatures = [];//网格多边形feature
     this.districtLayer = null;//选区图层
     this.draw = null;//绘制标志
     this.selectedFeatures = [];//在绘制区域的格点
 
     this.currentGridData = [];//当前网格数据
+    this.showGridData = [];
     this.historyGridData = [];//历史网格数据
-    this.revokeFlag = 0;
 
-    this.testArr = [];
   }
 
   componentDidMount() {
@@ -151,24 +158,20 @@ class Home extends Component {
 
   checkZoom() {
     let zoom = Math.ceil(this.map.getView().getZoom());
+    this.currentGridData = [];
     if (zoom === 7) {
-      console.log('zoom----->', zoom);
       this.map.removeLayer(this.gridLayer);
       this.addGridLayer(0.025, 10);
     } else if (zoom === 8) {
-      console.log('zoom----->', zoom);
       this.map.removeLayer(this.gridLayer);
       this.addGridLayer(0.025, 4);
     } else if (zoom === 9) {
-      console.log('zoom----->', zoom);
       this.map.removeLayer(this.gridLayer);
       this.addGridLayer(0.025, 2, true);
     } else if (zoom === 10) {
-      console.log('zoom----->', zoom);
       this.map.removeLayer(this.gridLayer);
       this.addGridLayer(0.025, 1, true);
     } else if (zoom === 11) {
-      console.log('zoom----->', zoom);
       this.map.removeLayer(this.gridLayer);
       this.addGridLayer(0.025, 1, true);
     }
@@ -186,7 +189,7 @@ class Home extends Component {
   //选择时次
   selectTimes(data) {
     this.setState({
-      times: data,
+      sequence: data,
     });
   }
 
@@ -222,36 +225,6 @@ class Home extends Component {
     let gridDataObj = this.props.home.gridData;
 
     this.gridFeatures = this.getGridFeatures(gridDataObj, step, multiple);
-
-
-    // let gridFeatures = [];//点的feature
-    // let startLon = gridDataObj.startLon;	//开始经度
-    // let startLat = gridDataObj.startLat;	//开始纬度
-    // let endLon = gridDataObj.endLon;	//结束纬度
-    // let endLat = gridDataObj.endLat;	//结束纬度
-    // let lon;		//实际经度
-    // let lat;		//实际维度
-    //
-    // let ind = -1;
-    // for (let i = 0; i < Math.ceil((endLat - startLat) / (step * multiple)); i++) {
-    //   lat = startLat + i * step * multiple;
-    //   this.currentGridData.push([]);
-    //   for (let j = 0; j <= Math.ceil((endLon - startLon) / (step * multiple)); j++) {
-    //     ind++;
-    //     lon = startLon + j * step * multiple;
-    //     this.currentGridData[i].push(0);
-    //
-    //     let coordinates = [
-    //       [lon, lat],
-    //       [lon + step * multiple, lat],
-    //       [lon + step * multiple, lat - step * multiple],
-    //       [lon, lat - step * multiple],
-    //       [lon, lat],
-    //     ];
-    //     gridFeatures[ind] = this.setGridFeatureConfig(coordinates, i, j, this.currentGridData);
-    //   }
-    // }
-    // this.gridFeatures= gridFeatures;
     const source = new Source.Vector({ features: this.gridFeatures });
 
     this.gridLayer.setSource(source);
@@ -262,10 +235,6 @@ class Home extends Component {
   //获取网格多边形feature数组
   getGridFeatures(gridDataObj, step, multiple) {
     let gridFeatures = [];//点的feature
-    // let startLon = gridDataObj.startLon;	//开始经度
-    // let startLat = gridDataObj.startLat;	//开始纬度
-    // let endLon = gridDataObj.endLon;	//结束纬度
-    // let endLat = gridDataObj.endLat;	//结束纬度
     let lon;		//实际经度
     let lat;		//实际维度
 
@@ -336,17 +305,6 @@ class Home extends Component {
       });
       // }
     }
-  }
-
-  //多维数组深拷贝
-  deepCopy(obj) {
-    let out = [];
-    for (let i = 0; i < obj.length; i++) {
-      if (obj[i] instanceof Array) {
-        out[i] = this.deepCopy(obj[i]);
-      } else out[i] = obj[i];
-    }
-    return out;
   }
 
   //选择工具
@@ -458,7 +416,7 @@ class Home extends Component {
       });
 
       //把未修改前的网格数据保存在history里
-      this.historyGridData.push(this.deepCopy(this.currentGridData));
+      this.historyGridData.push(utils.deepCopy(this.currentGridData));
       for (let i = 0; i < selectedFeatures.length; i++) {
         let row = selectedFeatures[i].get('row');
         let column = selectedFeatures[i].get('column');
@@ -478,8 +436,18 @@ class Home extends Component {
           }),
         }));
       }
+      console.log('this.currentGridData----->', this.currentGridData);
       this.selectedFeatures = [];
-      this.revokeFlag++;
+      let params = {};
+      params.forecastDate = this.state.date;
+      params.sequence = this.state.sequence;
+      params.valid = this.state.valid;
+      params.createTime = utils.getDate();
+      params.title = '测试----这是1级标题';
+      params.subtitle = '测试----这是2级标题';
+      params.data = this.currentGridData;
+
+      console.log(JSON.stringify(params));
     }
   }
 

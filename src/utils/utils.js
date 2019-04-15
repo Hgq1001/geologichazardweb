@@ -116,7 +116,7 @@ export function deepCopy(obj) {
   let out = [];
   for (let i = 0; i < obj.length; i++) {
     if (obj[i] instanceof Array) {
-      out[i] = this.deepCopy(obj[i]);
+      out[i] = deepCopy(obj[i]);
     }
     else out[i] = obj[i];
   }
