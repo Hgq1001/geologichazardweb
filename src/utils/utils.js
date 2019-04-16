@@ -32,6 +32,17 @@ export function getDate(timeStamp = new Date().getTime()) {
 }
 
 /**
+ * 获取日期 年月日 2019-03-26,
+ * timeStamp  时间戳  默认当前时间
+ */
+export function getDateAndHour(timeStamp = new Date().getTime()) {
+  let date = new Date(timeStamp);
+  let sDate = (date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours())
+    .replace(/([\-\: ])(\d{1})(?!\d)/g, '$10$2');
+  return sDate;
+}
+
+/**
  * 往后加几天,
  * date  日期   2019-03-28
  * days  几天  number
@@ -117,8 +128,7 @@ export function deepCopy(obj) {
   for (let i = 0; i < obj.length; i++) {
     if (obj[i] instanceof Array) {
       out[i] = deepCopy(obj[i]);
-    }
-    else out[i] = obj[i];
+    } else out[i] = obj[i];
   }
   return out;
 }

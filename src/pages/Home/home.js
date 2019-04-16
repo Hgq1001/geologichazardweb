@@ -29,7 +29,7 @@ import * as Interaction from 'ol/interaction';
 import * as Control from 'ol/control';
 import * as Coordinate from 'ol/coordinate';
 import 'ol/ol.css';
-import { message } from 'antd';
+import { message, Modal, Button, Input } from 'antd';
 import { saveAs } from 'file-saver';
 
 import cqGeojson from '../../assets/mapData/chongqing.geojson';
@@ -62,8 +62,8 @@ const provinceStyle = (feature, resolution) => {
 };
 
 const mapObj = {
-  initMap: (container,layers,) => {
-    return
+  initMap: (container, layers) => {
+    return;
   },
 };
 
@@ -92,11 +92,13 @@ class Home extends Component {
     // 初始状态
     this.state = {
       date: utils.getDate(),
-      sequence: '',
-      valid: '',
+      sequence: '02',
+      valid: '12',
       customValid: '',
       colorData: {},
-
+      visible: false,
+      title: '重庆市地质灾害气象风险预警图',
+      subtitle: '重庆市规划和自然资源局、重庆市气象局联合发布',
 
       // distance:
     };
@@ -107,16 +109,31 @@ class Home extends Component {
     this.gridFeatures = [];//网格多边形feature
     this.districtLayer = null;//选区图层
     this.draw = null;//绘制标志
-    this.selectedFeatures = [];//在绘制区域的格点
+    this.selectedFeatures = [];//选中的格点
+    this.currentSelectedFeatures = [];//当前选中的格点
 
     this.currentGridData = [];//当前网格数据
-    this.showGridData = [];
+    this.innerGridData = [];
     this.historyGridData = [];//历史网格数据
+
+    this.multiple = 5;
+    this.isShowLine = false;
 
   }
 
   componentDidMount() {
+
+
     this.initMap();
+    let gridDataObj = this.props.home.gridData;
+    for (let i = 0; i < Math.ceil((gridDataObj.endLat - gridDataObj.startLat) / (0.025)); i++) {
+      this.currentGridData.push([]);
+      for (let j = 0; j <= Math.ceil((gridDataObj.endLon - gridDataObj.startLon) / (0.025)); j++) {
+        this.currentGridData[i].push(0);
+      }
+    }
+
+    console.log('innerGridData---------->', this.innerGridData);
   }
 
   initMap() {
@@ -158,23 +175,38 @@ class Home extends Component {
 
   checkZoom() {
     let zoom = Math.ceil(this.map.getView().getZoom());
-    this.currentGridData = [];
-    if (zoom === 7) {
+    // this.currentGridData = [];
+
+    if (this.gridLayer) {
+      switch (zoom) {
+        case 7:
+          this.multiple = 20;
+          this.isShowLine = false;
+          break;
+        case 8:
+          this.multiple = 10;
+          this.isShowLine = false;
+          break;
+        case 9:
+          this.multiple = 4;
+          this.isShowLine = false;
+          break;
+        case 10:
+        case 11:
+          this.multiple = 1;
+          this.isShowLine = true;
+          break;
+      }
       this.map.removeLayer(this.gridLayer);
-      this.addGridLayer(0.025, 10);
-    } else if (zoom === 8) {
-      this.map.removeLayer(this.gridLayer);
-      this.addGridLayer(0.025, 4);
-    } else if (zoom === 9) {
-      this.map.removeLayer(this.gridLayer);
-      this.addGridLayer(0.025, 2, true);
-    } else if (zoom === 10) {
-      this.map.removeLayer(this.gridLayer);
-      this.addGridLayer(0.025, 1, true);
-    } else if (zoom === 11) {
-      this.map.removeLayer(this.gridLayer);
-      this.addGridLayer(0.025, 1, true);
+      this.gridLayer = null;
+      this.gridLayer = this.createGridLayer(this.props.home.gridData, 0.025, 1, this.isShowLine, true);
+      this.map.addLayer(this.gridLayer);
+      console.log('this.selectedFeatures================>', this.selectedFeatures.length);
+      if (this.selectedFeatures.length > 0) {
+        this.setGridFeatureStyle(this.selectedFeatures, this.currentGridData, this.multiple, this.isShowLine);
+      }
     }
+
   }
 
   //选择时间
@@ -203,14 +235,14 @@ class Home extends Component {
   //自定义时效
   customValid(data) {
     this.setState({
-      customValid: data,
+      valid: data,
     });
   }
 
   //加载网格
-  loadOrigin(step = 0.025) {
+  loadOrigin() {
     if (!this.gridLayer) {
-      this.addGridLayer(0.025, 5);
+      this.addGridLayer();
     } else {
       this.map.removeLayer(this.gridLayer);
       this.gridLayer = null;
@@ -218,17 +250,29 @@ class Home extends Component {
   }
 
   //添加网格图层
-  addGridLayer(step = 0.025, multiple = 1, isShowLine) {
-    this.gridLayer = new Layer.Vector({ source: null, style: null, name: 'gridLayer' });
+  addGridLayer() {
+
+    this.gridLayer = this.createGridLayer(this.props.home.gridData, 0.05, 1, this.isShowLine, true);
+
+    console.log('------>', this.gridLayer.getSource().getFeatures().length);
+    // this.innerGridLayer = this.createGridLayer(this.props.home.gridData, 0.025, 1, false, false);
+
     this.map.addLayer(this.gridLayer);
+    // this.map.addLayer(this.innerGridLayer);
 
-    let gridDataObj = this.props.home.gridData;
 
-    this.gridFeatures = this.getGridFeatures(gridDataObj, step, multiple);
-    const source = new Source.Vector({ features: this.gridFeatures });
+  }
 
-    this.gridLayer.setSource(source);
-    this.setGridFeatureStyle(multiple, this.currentGridData, isShowLine);
+  //创建网格图层gridLayer
+  createGridLayer(gridDataObj, step, multiple, isShowLine, hasStyle) {
+    console.log('this.currentData-------------->>>',this.currentGridData)
+    let layer = new Layer.Vector({ source: null, style: null, name: 'gridLayer' });
+    const features = this.getGridFeatures(gridDataObj, step, multiple);
+    const source = new Source.Vector({ features: features });
+
+    layer.setSource(source);
+    this.setGridFeatureStyle(features, this.currentGridData, multiple, isShowLine, hasStyle);
+    return layer;
   }
 
 
@@ -241,11 +285,11 @@ class Home extends Component {
     let idx = -1;//每个格子的index
     for (let i = 0; i < Math.ceil((gridDataObj.endLat - gridDataObj.startLat) / (step * multiple)); i++) {
       lat = gridDataObj.startLat + i * step * multiple;
-      this.currentGridData.push([]);
+      // this.currentGridData.push([]);
       for (let j = 0; j <= Math.ceil((gridDataObj.endLon - gridDataObj.startLon) / (step * multiple)); j++) {
         idx++;
         lon = gridDataObj.startLon + j * step * multiple;
-        this.currentGridData[i].push(0);
+        // this.currentGridData[i].push(0);
 
         let coordinates = [
           [lon, lat],
@@ -279,9 +323,9 @@ class Home extends Component {
   }
 
   //设置网格样式以及数目
-  setGridFeatureStyle(num = 2, data, isShowLine = false) {
-    let Features = this.gridFeatures;
-    // this.map.removeLayer(this.districtLayer);
+  setGridFeatureStyle(Features, data, multiple, isShowLine, hasStyle) {
+    // let Features = this.gridFeatures;
+    // let Features = layer.getSource().getFeatures();
     for (let i = 0; i < Features.length; i++) {
       let row = Features[i].get('row');
       let column = Features[i].get('column');
@@ -289,8 +333,8 @@ class Home extends Component {
       Features[i].setProperties({
         value: data[row][column] + '',
       });
-      // if (row % num === 0 && column % num === 0) {
-      let flag = row % num === 0 && column % num === 0;
+      let flag = row % this.multiple === 0 && column % this.multiple === 0;
+      // hasStyle ?
       Features[i].setStyle(function() {
         return new OlStyles.Style({
           stroke: isShowLine ? new OlStyles.Stroke({
@@ -298,12 +342,15 @@ class Home extends Component {
             width: 1,
           }) : null,
           fill: new OlStyles.Fill({ color: utils.getColor(data[row][column]) }),
-          text: row % num === 0 && column % num === 0 ? new OlStyles.Text({
+          text: flag ? new OlStyles.Text({
             text: '' + Features[i].get('value'),
           }) : null,
         });
       });
-      // }
+      // :
+      // Features[i].setStyle(function() {
+      //   return null;
+      // });
     }
   }
 
@@ -321,24 +368,54 @@ class Home extends Component {
         this.revoke();
         break;
       case 4://出图
-        this.exportMapImg();
+        this.showModal();
+        // this.exportMapImg();
         break;
     }
   }
 
+  showModal() {
+    this.setState({
+      visible: !this.state.visible,
+    });
+  }
+
   //图片导出
   exportMapImg() {
-    this.map.once('rendercomplete', function(event) {
-      var canvas = event.context.canvas;
-      if (navigator.msSaveBlob) {
-        navigator.msSaveBlob(canvas.msToBlob(), 'map.png');
-      } else {
-        canvas.toBlob(function(blob) {
-          saveAs(blob, 'map.png');
-        });
-      }
+    let params = {};
+    params.forecastDate = this.state.date;
+    params.sequence = this.state.sequence;
+    params.valid = this.state.valid;
+    params.createTime = utils.getDateAndHour();
+    params.title = this.state.title;
+    params.subtitle = '（' + this.state.subtitle + '）';
+    params.data = this.currentGridData;
+
+    console.log('params-->', params);
+
+    fetch('http://localhost:8888/cctz/api/rest/calljavatestcqtz/drawgrid2pic', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: JSON.stringify(params),
+    }).then(function(response) {
+      console.log('response-------->', response);
+      alert('success');
+    }).catch(error => {
+      console.log('error------------>', error);
     });
-    this.map.renderSync();
+    // this.map.once('rendercomplete', function(event) {
+    //   var canvas = event.context.canvas;
+    //   if (navigator.msSaveBlob) {
+    //     navigator.msSaveBlob(canvas.msToBlob(), 'map.png');
+    //   } else {
+    //     canvas.toBlob(function(blob) {
+    //       saveAs(blob, 'map.png');
+    //     });
+    //   }
+    // });
+    // this.map.renderSync();
   }
 
   //撤销
@@ -347,7 +424,8 @@ class Home extends Component {
       return message.warning('当前没有数据存储版本！');
     } else {
       this.currentGridData = this.historyGridData.pop();
-      this.setGridFeatureStyle(2, this.currentGridData);
+      this.selectedFeatures = this.selectedFeatures.slice(0, this.selectedFeatures.length - 1);
+      this.setGridFeatureStyle(this.gridLayer, this.currentGridData, this.multiple, this.isShowLine);
     }
   }
 
@@ -387,6 +465,7 @@ class Home extends Component {
             let centerPoint = Extent.getCenter(feature.getGeometry().getExtent());
             //判断格子的中心点是否在所选择的区域，并把feature保存起来
             if (utils.insidePolygon(coords, centerPoint)) {
+              this.currentSelectedFeatures.push(feature);
               this.selectedFeatures.push(feature);
             }
           });
@@ -402,8 +481,8 @@ class Home extends Component {
 
   //选择色卡
   selectToolTip(data) {
-    if (this.selectedFeatures.length === 0) return message.warning('请先选择区域！');
-    this.changeFeature(this.selectedFeatures, data);
+    if (this.currentSelectedFeatures.length === 0) return message.warning('请先选择区域！');
+    this.changeFeature(this.currentSelectedFeatures, data);
   }
 
   //改变所选区域颜色
@@ -420,34 +499,36 @@ class Home extends Component {
       for (let i = 0; i < selectedFeatures.length; i++) {
         let row = selectedFeatures[i].get('row');
         let column = selectedFeatures[i].get('column');
+        let idx = selectedFeatures[i].get('idx');
+        console.log('row---->', row);
+        console.log('column---->', column);
+        console.log('idx---->', idx);
         //改变数值
         this.currentGridData[row][column] = data.code;
         //设置feature的value值
         selectedFeatures[i].setProperties({
           value: data.code + '',
         });
+        let flag = row % this.multiple === 0 && column % this.multiple === 0;
         selectedFeatures[i].setStyle(new OlStyles.Style({
-          stroke: new OlStyles.Stroke({ color: 'rgb(166, 166, 166)', width: 1 }),
+          stroke: this.isShowLine ? new OlStyles.Stroke({ color: 'rgb(166, 166, 166)', width: 1 }) : null,
           fill: new OlStyles.Fill({ color: data.rgba }),
-          text: new OlStyles.Text({
-            textAlign: 'center',
-            text: selectedFeatures[i].get('value'),
-            font: '16px',
-          }),
+          text: flag ?
+            new OlStyles.Text({
+              textAlign: 'center',
+              text: selectedFeatures[i].get('value'),
+              font: '16px',
+            })
+            :
+            null,
         }));
       }
-      console.log('this.currentGridData----->', this.currentGridData);
-      this.selectedFeatures = [];
-      let params = {};
-      params.forecastDate = this.state.date;
-      params.sequence = this.state.sequence;
-      params.valid = this.state.valid;
-      params.createTime = utils.getDate();
-      params.title = '测试----这是1级标题';
-      params.subtitle = '测试----这是2级标题';
-      params.data = this.currentGridData;
 
-      console.log(JSON.stringify(params));
+      console.log('this.currentSelectedFeatures------------>', this.currentSelectedFeatures);
+      this.currentSelectedFeatures = [];
+      console.log('this.selectedFeatures------------>', this.selectedFeatures);
+      console.log('this.currentSelectedFeatures------------>', this.currentSelectedFeatures);
+      // this.selectedFeatures = [];
     }
   }
 
@@ -459,6 +540,44 @@ class Home extends Component {
         <div className={styles.content}>
           <div id={'map'} className={styles.map}/>
         </div>
+
+        <Modal
+          visible={this.state.visible}
+          title="导出图片"
+          // onOk={this.handleOk}
+          onCancel={() => {
+            this.setState({ visible: false });
+          }}
+          footer={[
+            <Button key="back" onClick={() => {
+              this.setState({ visible: false });
+            }}>取消</Button>,
+            <Button key="submit" type="primary" onClick={() => {
+              this.setState({ visible: false }, () => {
+                this.exportMapImg();
+              });
+            }}>
+              导出
+            </Button>,
+          ]}
+        >
+          <div>
+            <div>
+              主标题：<Input defaultValue={this.state.title} value={this.state.title} allowClear onChange={(e) => {
+              this.setState({
+                title: e.target.value,
+              });
+            }}/>
+            </div>
+            <div>
+              副标题：<Input defaultValue={this.state.subtitle} value={this.state.subtitle} allowClear onChange={(e) => {
+              this.setState({
+                subtitle: e.target.value,
+              });
+            }}/>
+            </div>
+          </div>
+        </Modal>
 
         {/*左边部分*/}
         {/*<div className={styles.left}>*/}

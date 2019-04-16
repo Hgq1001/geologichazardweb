@@ -37,7 +37,7 @@ class ColorBar extends Component {
     console.log('list-------------->', list);
     return list.map((item, index) => {
       return (
-        <div className={styles.item} onClick={() => {
+        <div key={index} className={styles.item} onClick={() => {
           selectToolTip(item);
         }}>
           <div className={styles.itemBg} style={{ backgroundColor: item.color }}/>
