@@ -437,11 +437,11 @@ class Home extends Component {
     fetch('http://localhost:8889/cctz/metheo/DrawGrid2PicServlet.svt', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        // 'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(params),
-      // body: params,
+      // body: JSON.stringify(params),
+      body: params,
     }).then(function(response) {
       console.log('response-------->', response);
       alert('success');
